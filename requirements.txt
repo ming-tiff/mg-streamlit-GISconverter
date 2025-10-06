@@ -7,3 +7,5 @@ pyproj
 numpy
 requests
 zipfile36
+folium
+streamlit-folium
