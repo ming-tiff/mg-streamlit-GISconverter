@@ -25,7 +25,7 @@ if uploaded_file is not None:
     # CRS input
     crs_input = st.text_input("Enter CRS (EPSG code, e.g., 4326 for WGS84)", "4326")
 
-    if st.button("Convert to Shapefile"):
+ if st.button("Convert to Shapefile"):
     try:
         # Create geometry column
         gdf = gpd.GeoDataFrame(
