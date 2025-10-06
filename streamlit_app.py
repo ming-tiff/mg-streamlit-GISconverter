@@ -18,8 +18,10 @@ uploaded_file = st.file_uploader("📤 Upload CSV file", type=["csv"])
 if uploaded_file is not None:
     # Read CSV
     df = pd.read_csv(uploaded_file)
-    st.subheader("Preview of Uploaded Data")
-    st.dataframe(df.head())
+
+    # Show all rows
+    st.subheader("Preview of Uploaded Data (All Rows)")
+    st.dataframe(df)
 
     # --- User Input ---
     lat_col = st.selectbox("Select **Latitude** column", df.columns)
