@@ -19,14 +19,31 @@ if uploaded_file is not None:
     # Read CSV
     df = pd.read_csv(uploaded_file)
 
-    # Show all rows
+    # 🔹 Show all rows instead of only top 5
     st.subheader("Preview of Uploaded Data (All Rows)")
     st.dataframe(df)
 
     # --- User Input ---
     lat_col = st.selectbox("Select **Latitude** column", df.columns)
     lon_col = st.selectbox("Select **Longitude** column", df.columns)
-    crs_input = st.text_input("Enter CRS (EPSG code, e.g., 4326 for WGS84)", "4326")
+
+    # 🔹 CRS Selection (New Section)
+    st.subheader("Select Coordinate Reference System (CRS)")
+    crs_options = {
+        "4326 - WGS 84": "4326",
+        "3380 - GDM2000 / MRSO": "3380",
+        "3376 - GDM2000 / BRSO": "3376",
+        "Other (custom EPSG code)": "custom"
+    }
+
+    selected_crs_label = st.selectbox("Choose CRS:", list(crs_options.keys()))
+    selected_crs = crs_options[selected_crs_label]
+
+    if selected_crs == "custom":
+        custom_epsg = st.text_input("Enter your custom EPSG code:", "")
+        crs_input = custom_epsg.strip() if custom_epsg else "4326"
+    else:
+        crs_input = selected_crs
 
     # --- Convert Button ---
     if st.button("Convert to Shapefile"):
