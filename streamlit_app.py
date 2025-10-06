@@ -58,18 +58,20 @@ if uploaded_file is not None:
                     zf.write(os.path.join(temp_dir, filename), arcname=filename)
 
 
-            st.success("✅ Conversion successful! Click below to download the shapefile.")
+            st.success(f"✅ {base_name}.zip is ready for download!")
+
+            # Download button
             st.download_button(
                 label="📥 Download Shapefile (ZIP)",
                 data=buffer.getvalue(),
-                file_name="shapefile.zip",
+                file_name=f"{base_name}.zip",
                 mime="application/zip"
             )
 
             # Clean up
             for f in os.listdir("temp_shp"):
-                os.remove(os.path.join("temp_shp", f))
-            os.rmdir("temp_shp")
+                os.remove(os.path.join("temp_dir", f))
+            os.rmdir("temp_dir")
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
