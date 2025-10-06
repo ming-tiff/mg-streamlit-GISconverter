@@ -34,17 +34,24 @@ if uploaded_file is not None:
                 crs=f"EPSG:{crs_input}"
             )
 
+            # Derive output name from uploaded CSV
+            base_name = os.path.splitext(uploaded_file.name)[0]
+
+            
             # Save shapefile to memory (as ZIP)
             buffer = io.BytesIO()
             with zipfile.ZipFile(buffer, "w") as zf:
                 temp_dir = "temp_shp"
                 os.makedirs(temp_dir, exist_ok=True)
-                shp_path = os.path.join(temp_dir, "output.shp")
-                gdf.to_file(shp_path)
 
-                # Add all files (.shp, .shx, .dbf, .prj, etc.)
+                # 👉 NEW: use CSV name for shapefile
+                shp_path = os.path.join(temp_dir, f"{base_name}.shp")
+                gdf.to_file(shp_path)
+    
+                # Add all shapefile parts
                 for filename in os.listdir(temp_dir):
                     zf.write(os.path.join(temp_dir, filename), arcname=filename)
+
 
             st.success("✅ Conversion successful! Click below to download the shapefile.")
             st.download_button(
