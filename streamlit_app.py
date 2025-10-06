@@ -42,9 +42,9 @@ if uploaded_file is not None:
 
             # Clean previous temp folder if exists
             if os.path.exists(temp_dir):
-            for f in os.listdir(temp_dir):
-                os.remove(os.path.join(temp_dir, f))
-            os.rmdir(temp_dir)
+                for f in os.listdir(temp_dir):
+                    os.remove(os.path.join(temp_dir, f))
+                os.rmdir(temp_dir)
 
              # Create fresh temp folder
             os.makedirs(temp_dir, exist_ok=True)
