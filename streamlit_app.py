@@ -19,16 +19,16 @@ if uploaded_file is not None:
     # Read CSV
     df = pd.read_csv(uploaded_file)
 
-    # 🔹 Show all rows instead of only top 5
-    st.subheader("Preview of Uploaded Data (All Rows)")
+    # 🔹 Show all rows
+    st.subheader("📋 Preview of Uploaded Data (All Rows)")
     st.dataframe(df)
 
     # --- User Input ---
     lat_col = st.selectbox("Select **Latitude** column", df.columns)
     lon_col = st.selectbox("Select **Longitude** column", df.columns)
 
-    # 🔹 CRS Selection (New Section)
-    st.subheader("Select Coordinate Reference System (CRS)")
+    # --- CRS Selection ---
+    st.subheader("🌐 Select Coordinate Reference System (CRS)")
     crs_options = {
         "4326 - WGS 84": "4326",
         "3380 - GDM2000 / MRSO": "3380",
@@ -45,6 +45,14 @@ if uploaded_file is not None:
     else:
         crs_input = selected_crs
 
+    # --- Map Preview ---
+    st.subheader("🗺️ Map Preview (Based on Latitude & Longitude)")
+    try:
+        preview_df = df[[lat_col, lon_col]].dropna()
+        st.map(preview_df.rename(columns={lat_col: "lat", lon_col: "lon"}))
+    except Exception as e:
+        st.warning(f"⚠️ Unable to display map preview: {e}")
+
     # --- Convert Button ---
     if st.button("Convert to Shapefile"):
         try:
@@ -55,19 +63,19 @@ if uploaded_file is not None:
                 crs=f"EPSG:{crs_input}"
             )
 
-            # Derive base name from uploaded CSV file
+            # Derive base name from uploaded CSV
             base_name = os.path.splitext(uploaded_file.name)[0]
 
             # Define temp folder
             temp_dir = "temp_shp"
 
-            # Clean old temp folder (if exists)
+            # Clean up old temp folder
             if os.path.exists(temp_dir):
                 for f in os.listdir(temp_dir):
                     os.remove(os.path.join(temp_dir, f))
                 os.rmdir(temp_dir)
 
-            # Create fresh temp folder
+            # Create fresh folder
             os.makedirs(temp_dir, exist_ok=True)
 
             # Save shapefile
