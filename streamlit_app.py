@@ -50,7 +50,7 @@ if uploaded_file is not None:
             st.download_button(
                 label="📥 Download Shapefile (ZIP)",
                 data=buffer.getvalue(),
-                file_name="shapefile.zip",
+                file_name=f"{base_name}.zip",
                 mime="application/zip"
             )
 
