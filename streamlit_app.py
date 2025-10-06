@@ -26,38 +26,45 @@ if uploaded_file is not None:
     crs_input = st.text_input("Enter CRS (EPSG code, e.g., 4326 for WGS84)", "4326")
 
     if st.button("Convert to Shapefile"):
-        try:
-            # Create geometry column
-            gdf = gpd.GeoDataFrame(
-                df,
-                geometry=gpd.points_from_xy(df[lon_col], df[lat_col]),
-                crs=f"EPSG:{crs_input}"
-            )
+    try:
+        # Create geometry column
+        gdf = gpd.GeoDataFrame(
+            df,
+            geometry=gpd.points_from_xy(df[lon_col], df[lat_col]),
+            crs=f"EPSG:{crs_input}"
+        )
 
-            # Save shapefile to memory (as ZIP)
-            buffer = io.BytesIO()
-            with zipfile.ZipFile(buffer, "w") as zf:
-                temp_dir = "temp_shp"
-                os.makedirs(temp_dir, exist_ok=True)
-                shp_path = os.path.join(temp_dir, "output.shp")
-                gdf.to_file(shp_path)
+        # Derive output name from uploaded CSV
+        base_name = os.path.splitext(uploaded_file.name)[0]
 
-                # Add all files (.shp, .shx, .dbf, .prj, etc.)
-                for filename in os.listdir(temp_dir):
-                    zf.write(os.path.join(temp_dir, filename), arcname=filename)
+        # Save shapefile to memory (as ZIP)
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as zf:
+            temp_dir = "temp_shp"
+            os.makedirs(temp_dir, exist_ok=True)
 
-            st.success("✅ Conversion successful! Click below to download the shapefile.")
-            st.download_button(
-                label="📥 Download Shapefile (ZIP)",
-                data=buffer.getvalue(),
-                file_name=f"{base_name}.zip",
-                mime="application/zip"
-            )
+            # 👉 NEW: use CSV name for shapefile
+            shp_path = os.path.join(temp_dir, f"{base_name}.shp")
+            gdf.to_file(shp_path)
 
-            # Clean up
-            for f in os.listdir("temp_shp"):
-                os.remove(os.path.join("temp_shp", f))
-            os.rmdir("temp_shp")
+            # Add all shapefile parts
+            for filename in os.listdir(temp_dir):
+                zf.write(os.path.join(temp_dir, filename), arcname=filename)
 
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
+        st.success("✅ Conversion successful! Click below to download the shapefile.")
+
+        # 👉 NEW: use CSV name for ZIP download
+        st.download_button(
+            label="📥 Download Shapefile (ZIP)",
+            data=buffer.getvalue(),
+            file_name=f"{base_name}.zip",
+            mime="application/zip"
+        )
+
+        # Clean up
+        for f in os.listdir("temp_shp"):
+            os.remove(os.path.join("temp_shp", f))
+        os.rmdir("temp_shp")
+
+    except Exception as e:
+        st.error(f"❌ Error: {e}"
