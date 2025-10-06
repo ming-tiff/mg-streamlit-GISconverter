@@ -60,10 +60,10 @@ if uploaded_file is not None:
 
           # Create ZIP in memory
           buffer = io.BytesIO()
-          with zipfile.ZipFile(buffer, "w") as zf:
-             for filename in shp_parts:
-                file_path = os.path.join(temp_dir, filename)
-                zf.write(file_path, arcname=filename)
+              with zipfile.ZipFile(buffer, "w") as zf:
+                 for filename in shp_parts:
+                    file_path = os.path.join(temp_dir, filename)
+                    zf.write(file_path, arcname=filename)
 
             st.success(f"✅ {base_name}.zip is ready for download!")
 
