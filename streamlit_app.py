@@ -5,6 +5,8 @@ from shapely.geometry import Point
 import zipfile
 import io
 import os
+import folium
+from streamlit_folium import st_folium
 
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="CSV to Shapefile Converter", page_icon="🌍", layout="wide")
@@ -21,7 +23,7 @@ if uploaded_file is not None:
 
     # 🔹 Show all rows
     st.subheader("📋 Preview of Uploaded Data (All Rows)")
-    st.dataframe(df)
+    st.dataframe(df, use_container_width=True)
 
     # --- User Input ---
     lat_col = st.selectbox("Select **Latitude** column", df.columns)
@@ -45,11 +47,35 @@ if uploaded_file is not None:
     else:
         crs_input = selected_crs
 
-    # --- Map Preview ---
-    st.subheader("🗺️ Map Preview (Based on Latitude & Longitude)")
+    # --- Folium Map Preview ---
+    st.subheader("🗺️ Interactive Map Preview")
     try:
+        # Prepare data for mapping
         preview_df = df[[lat_col, lon_col]].dropna()
-        st.map(preview_df.rename(columns={lat_col: "lat", lon_col: "lon"}))
+        if not preview_df.empty:
+            # Center map around mean coordinates
+            center_lat = preview_df[lat_col].mean()
+            center_lon = preview_df[lon_col].mean()
+
+            # Create Folium map
+            m = folium.Map(location=[center_lat, center_lon], zoom_start=10, tiles="OpenStreetMap")
+
+            # Add points
+            for _, row in preview_df.iterrows():
+                folium.CircleMarker(
+                    location=[row[lat_col], row[lon_col]],
+                    radius=5,
+                    color="blue",
+                    fill=True,
+                    fill_color="cyan",
+                    fill_opacity=0.7,
+                    tooltip=f"Lat: {row[lat_col]}, Lon: {row[lon_col]}"
+                ).add_to(m)
+
+            # Render Folium map in Streamlit
+            st_folium(m, width=800, height=500)
+        else:
+            st.warning("⚠️ No valid coordinates found for preview.")
     except Exception as e:
         st.warning(f"⚠️ Unable to display map preview: {e}")
 
