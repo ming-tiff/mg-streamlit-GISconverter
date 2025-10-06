@@ -37,18 +37,23 @@ if uploaded_file is not None:
             # Derive output name from uploaded CSV
             base_name = os.path.splitext(uploaded_file.name)[0]
 
-            
-            # Save shapefile to memory (as ZIP)
+            # Clean previous temp folder if exists
+            temp_dir = "temp_shp"
+            if os.path.exists(temp_dir):
+                for f in os.listdir(temp_dir):
+                    os.remove(os.path.join(temp_dir, f))
+                os.rmdir(temp_dir)
+
+             # Create fresh temp folder
+            os.makedirs(temp_dir, exist_ok=True)
+
+            # Save shapefile with same name as CSV
+            shp_path = os.path.join(temp_dir, f"{base_name}.shp")
+            gdf.to_file(shp_path)
+
+            # Save shapefile to memory (ZIP)
             buffer = io.BytesIO()
             with zipfile.ZipFile(buffer, "w") as zf:
-                temp_dir = "temp_shp"
-                os.makedirs(temp_dir, exist_ok=True)
-
-                # 👉 NEW: use CSV name for shapefile
-                shp_path = os.path.join(temp_dir, f"{base_name}.shp")
-                gdf.to_file(shp_path)
-    
-                # Add all shapefile parts
                 for filename in os.listdir(temp_dir):
                     zf.write(os.path.join(temp_dir, filename), arcname=filename)
 
