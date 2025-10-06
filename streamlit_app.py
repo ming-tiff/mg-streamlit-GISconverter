@@ -37,12 +37,14 @@ if uploaded_file is not None:
             # Derive output name from uploaded CSV
             base_name = os.path.splitext(uploaded_file.name)[0]
 
-            # Clean previous temp folder if exists
+            # Define temp folder
             temp_dir = "temp_shp"
+
+            # Clean previous temp folder if exists
             if os.path.exists(temp_dir):
-                for f in os.listdir(temp_dir):
-                    os.remove(os.path.join(temp_dir, f))
-                os.rmdir(temp_dir)
+            for f in os.listdir(temp_dir):
+                os.remove(os.path.join(temp_dir, f))
+            os.rmdir(temp_dir)
 
              # Create fresh temp folder
             os.makedirs(temp_dir, exist_ok=True)
@@ -51,12 +53,17 @@ if uploaded_file is not None:
             shp_path = os.path.join(temp_dir, f"{base_name}.shp")
             gdf.to_file(shp_path)
 
-            # Save shapefile to memory (ZIP)
-            buffer = io.BytesIO()
-            with zipfile.ZipFile(buffer, "w") as zf:
-                for filename in os.listdir(temp_dir):
-                    zf.write(os.path.join(temp_dir, filename), arcname=filename)
+           # ✅ Ensure all shapefile parts exist before zipping
+            shp_parts = [f for f in os.listdir(temp_dir) if f.startswith(base_name)]
+            if not shp_parts:
+                raise FileNotFoundError("Shapefile components were not created correctly.")
 
+          # Create ZIP in memory
+          buffer = io.BytesIO()
+          with zipfile.ZipFile(buffer, "w") as zf:
+             for filename in shp_parts:
+                file_path = os.path.join(temp_dir, filename)
+                zf.write(file_path, arcname=filename)
 
             st.success(f"✅ {base_name}.zip is ready for download!")
 
@@ -68,10 +75,10 @@ if uploaded_file is not None:
                 mime="application/zip"
             )
 
-            # Clean up
-            for f in os.listdir("temp_shp"):
-                os.remove(os.path.join("temp_dir", f))
-            os.rmdir("temp_dir")
+            # Clean up after zipping
+            for f in os.listdir(temp_dir):
+                os.remove(os.path.join(temp_dir, f))
+            os.rmdir(temp_dir)
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
