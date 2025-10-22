@@ -12,24 +12,13 @@ from streamlit_folium import st_folium
 st.set_page_config(page_title="CSV to Shapefile Converter", page_icon="🌍", layout="wide")
 
 st.title("🌍 CSV to Shapefile Converter")
-st.markdown("Easily convert your CSV data into a Shapefile. Upload a CSV file with Latitude and Longitude columns.")
+st.markdown("Easily convert your CSV data into Shapefile(s). Upload one or more CSV files with Latitude and Longitude columns.")
 
-# --- Upload CSV ---
-uploaded_file = st.file_uploader("📤 Upload CSV file", type=["csv"])
+# --- Upload CSV (multiple) ---
+uploaded_files = st.file_uploader("📤 Upload one or more CSV files", type=["csv"], accept_multiple_files=True)
 
-if uploaded_file is not None:
-    # Read CSV
-    df = pd.read_csv(uploaded_file)
-
-    # 🔹 Show all rows
-    st.subheader("📋 Preview of Uploaded Data (All Rows)")
-    st.dataframe(df, use_container_width=True)
-
-    # --- User Input ---
-    lat_col = st.selectbox("Select **Latitude** column", df.columns)
-    lon_col = st.selectbox("Select **Longitude** column", df.columns)
-
-    # --- CRS Selection ---
+if uploaded_files:
+    # --- CRS Selection (shared for all files) ---
     st.subheader("🌐 Select Coordinate Reference System (CRS)")
     crs_options = {
         "4326 - WGS 84": "4326",
@@ -47,86 +36,84 @@ if uploaded_file is not None:
     else:
         crs_input = selected_crs
 
-    # --- Folium Map Preview ---
-    st.subheader("🗺️ Interactive Map Preview")
-    try:
-        # Prepare data for mapping
-        preview_df = df[[lat_col, lon_col]].dropna()
-        if not preview_df.empty:
-            # Center map around mean coordinates
-            center_lat = preview_df[lat_col].mean()
-            center_lon = preview_df[lon_col].mean()
+    # Prepare for zipping all shapefiles
+    temp_dir = "temp_shp_multi"
+    os.makedirs(temp_dir, exist_ok=True)
 
-            # Create Folium map
-            m = folium.Map(location=[center_lat, center_lon], zoom_start=10, tiles="OpenStreetMap")
+    all_gdfs = []  # to store GeoDataFrames for later zipping
 
-            # Add points
-            for _, row in preview_df.iterrows():
-                folium.CircleMarker(
-                    location=[row[lat_col], row[lon_col]],
-                    radius=5,
-                    color="blue",
-                    fill=True,
-                    fill_color="cyan",
-                    fill_opacity=0.7,
-                    tooltip=f"Lat: {row[lat_col]}, Lon: {row[lon_col]}"
-                ).add_to(m)
+    for uploaded_file in uploaded_files:
+        st.divider()
+        st.subheader(f"📁 File: {uploaded_file.name}")
 
-            # Render Folium map in Streamlit
-            st_folium(m, width=800, height=500)
-        else:
-            st.warning("⚠️ No valid coordinates found for preview.")
-    except Exception as e:
-        st.warning(f"⚠️ Unable to display map preview: {e}")
+        # Read CSV
+        df = pd.read_csv(uploaded_file)
 
-    # --- Convert Button ---
-    if st.button("Convert to Shapefile"):
+        # 🔹 Show all rows
+        st.subheader("📋 Preview of Uploaded Data (All Rows)")
+        st.dataframe(df, use_container_width=True)
+
+        # --- User Input ---
+        lat_col = st.selectbox(f"Select **Latitude** column for {uploaded_file.name}", df.columns, key=f"lat_{uploaded_file.name}")
+        lon_col = st.selectbox(f"Select **Longitude** column for {uploaded_file.name}", df.columns, key=f"lon_{uploaded_file.name}")
+
+        # --- Folium Map Preview ---
+        st.subheader("🗺️ Interactive Map Preview")
         try:
-            # Create GeoDataFrame
+            preview_df = df[[lat_col, lon_col]].dropna()
+            if not preview_df.empty:
+                center_lat = preview_df[lat_col].mean()
+                center_lon = preview_df[lon_col].mean()
+                m = folium.Map(location=[center_lat, center_lon], zoom_start=10, tiles="OpenStreetMap")
+                for _, row in preview_df.iterrows():
+                    folium.CircleMarker(
+                        location=[row[lat_col], row[lon_col]],
+                        radius=5,
+                        color="blue",
+                        fill=True,
+                        fill_color="cyan",
+                        fill_opacity=0.7,
+                        tooltip=f"Lat: {row[lat_col]}, Lon: {row[lon_col]}"
+                    ).add_to(m)
+                st_folium(m, width=800, height=500, key=f"map_{uploaded_file.name}")
+            else:
+                st.warning("⚠️ No valid coordinates found for preview.")
+        except Exception as e:
+            st.warning(f"⚠️ Unable to display map preview: {e}")
+
+        # Convert immediately (collect all for one zip)
+        try:
             gdf = gpd.GeoDataFrame(
                 df,
                 geometry=gpd.points_from_xy(df[lon_col], df[lat_col]),
                 crs=f"EPSG:{crs_input}"
             )
 
-            # Derive base name from uploaded CSV
             base_name = os.path.splitext(uploaded_file.name)[0]
-
-            # Define temp folder
-            temp_dir = "temp_shp"
-
-            # Clean up old temp folder
-            if os.path.exists(temp_dir):
-                for f in os.listdir(temp_dir):
-                    os.remove(os.path.join(temp_dir, f))
-                os.rmdir(temp_dir)
-
-            # Create fresh folder
-            os.makedirs(temp_dir, exist_ok=True)
-
-            # Save shapefile
             shp_path = os.path.join(temp_dir, f"{base_name}.shp")
             gdf.to_file(shp_path)
+            all_gdfs.append(base_name)
 
-            # Ensure shapefile parts exist
-            shp_parts = [f for f in os.listdir(temp_dir) if f.startswith(base_name)]
-            if not shp_parts:
-                raise FileNotFoundError("Shapefile components were not created correctly.")
+            st.success(f"✅ {base_name}.shp created successfully!")
+        except Exception as e:
+            st.error(f"❌ Error converting {uploaded_file.name}: {e}")
 
-            # Create ZIP in memory
+    # --- Combine all shapefiles into single ZIP ---
+    if all_gdfs and st.button("📦 Download All Shapefiles as ZIP"):
+        try:
             buffer = io.BytesIO()
             with zipfile.ZipFile(buffer, "w") as zf:
-                for filename in shp_parts:
-                    file_path = os.path.join(temp_dir, filename)
-                    zf.write(file_path, arcname=filename)
+                for base_name in all_gdfs:
+                    shp_parts = [f for f in os.listdir(temp_dir) if f.startswith(base_name)]
+                    for filename in shp_parts:
+                        file_path = os.path.join(temp_dir, filename)
+                        zf.write(file_path, arcname=filename)
 
-            st.success(f"✅ {base_name}.zip is ready for download!")
-
-            # Download button
+            st.success(f"✅ {len(all_gdfs)} shapefile(s) ready for download!")
             st.download_button(
-                label="📥 Download Shapefile (ZIP)",
+                label="📥 Download All Shapefiles (ZIP)",
                 data=buffer.getvalue(),
-                file_name=f"{base_name}.zip",
+                file_name="converted_shapefiles.zip",
                 mime="application/zip"
             )
 
@@ -136,7 +123,7 @@ if uploaded_file is not None:
             os.rmdir(temp_dir)
 
         except Exception as e:
-            st.error(f"❌ Error: {e}")
+            st.error(f"❌ Error creating ZIP: {e}")
 
 else:
-    st.info("👆 Please upload a CSV file to begin.")
+    st.info("👆 Please upload one or more CSV files to begin.")
