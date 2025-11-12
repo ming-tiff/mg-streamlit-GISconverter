@@ -21,9 +21,9 @@ if uploaded_files:
     # --- CRS Selection (shared for all files) ---
     st.subheader("🌐 Select Coordinate Reference System (CRS)")
     crs_options = {
-        "4326 - WGS 84": "4326",
-        "3380 - GDM2000 / MRSO": "3380",
-        "3376 - GDM2000 / BRSO": "3376",
+        "EPSG:4326 - WGS 84": "4326",
+        "EPSG:3375 - GDM2000 / Peninsula RSO": "3375",
+        "EPSG:3376 - GDM2000 / East Malaysia BRSO": "3376",
         "Other (custom EPSG code)": "custom"
     }
 
