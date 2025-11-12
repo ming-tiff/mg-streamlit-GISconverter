@@ -57,7 +57,7 @@ if uploaded_files:
         lat_col = st.selectbox(f"Select **Latitude** column for {uploaded_file.name}", df.columns, key=f"lat_{uploaded_file.name}")
         lon_col = st.selectbox(f"Select **Longitude** column for {uploaded_file.name}", df.columns, key=f"lon_{uploaded_file.name}")
 
-       # --- Folium Map Preview ---
+        # --- Folium Map Preview ---
         st.subheader("🗺️ Interactive Map Preview")
         try:
             preview_df = df[[lat_col, lon_col]].dropna()
@@ -65,58 +65,23 @@ if uploaded_files:
             if preview_df.empty:
                 st.warning("⚠️ No valid coordinates found for preview.")
             else:
-        # --- Select column for labels ---
-        label_col = st.selectbox(
-            f"Select column for point labels for {uploaded_file.name}",
-            df.columns,
-            index=0,
-            key=f"label_{uploaded_file.name}"
-        )
-
-        # Create the map
-        center_lat = preview_df[lat_col].mean()
-        center_lon = preview_df[lon_col].mean()
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=10, tiles="OpenStreetMap")
-
-        # Add points
-        for _, row in preview_df.iterrows():
-            folium.CircleMarker(
-                location=[float(row[lat_col]), float(row[lon_col])],
-                radius=5,
-                color="blue",
-                fill=True,
-                fill_color="cyan",
-                fill_opacity=0.7,
-                tooltip=f"{label_col}: {row[label_col]}"
-            ).add_to(m)
-
-        # --- This ensures the map actually shows up ---
-        map_output = st_folium(m, width=900, height=500, key=f"map_{uploaded_file.name}")
-except Exception as e:
-    st.warning(f"⚠️ Unable to display map preview: {e}")
-
-        
-        
-        # --- Folium Map Preview ---
-        st.subheader("🗺️ Interactive Map Preview")
-        try:
-            preview_df = df[[lat_col, lon_col]].dropna()
-            if not preview_df.empty:
                 # --- Select column for labels ---
                 label_col = st.selectbox(
                     f"Select column for point labels for {uploaded_file.name}",
                     df.columns,
-                    index=0,  # default to first column
+                    index=0,
                     key=f"label_{uploaded_file.name}"
                 )
 
+                # Create the map
                 center_lat = preview_df[lat_col].mean()
                 center_lon = preview_df[lon_col].mean()
                 m = folium.Map(location=[center_lat, center_lon], zoom_start=10, tiles="OpenStreetMap")
 
+                # Add points
                 for _, row in preview_df.iterrows():
                     folium.CircleMarker(
-                        location=[row[lat_col], row[lon_col]],
+                        location=[float(row[lat_col]), float(row[lon_col])],
                         radius=5,
                         color="blue",
                         fill=True,
@@ -125,13 +90,12 @@ except Exception as e:
                         tooltip=f"{label_col}: {row[label_col]}"
                     ).add_to(m)
 
-                st_folium(m, width=800, height=500, key=f"map_{uploaded_file.name}")
-            else:
-                st.warning("⚠️ No valid coordinates found for preview.")
+                # --- This ensures the map actually shows up ---
+                map_output = st_folium(m, width=900, height=500, key=f"map_{uploaded_file.name}")
         except Exception as e:
             st.warning(f"⚠️ Unable to display map preview: {e}")
 
-        # Convert immediately (collect all for one zip)
+        # --- Convert immediately (collect all for one zip) ---
         try:
             gdf = gpd.GeoDataFrame(
                 df,
